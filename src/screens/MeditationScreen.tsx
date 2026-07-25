@@ -6,10 +6,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MeditationTimer } from '../components/MeditationTimer';
-import { completeMeditationSession, getStreakState, getTodayVerse } from '../db/repositories';
+import { getTodayVerse } from '../db/repositories';
 import { colors } from '../theme/colors';
-import type { StreakState, Verse } from '../types';
-import { formatDateKey, formatKoreanDate, formatLocalDate } from '../utils/date';
+import type { Verse } from '../types';
+import { formatDateKey, formatKoreanDate } from '../utils/date';
 
 const AMBIENT_TRACK = require('../../assets/audio/meditation-ambient.wav') as number;
 const DURATION_OPTIONS = [
@@ -39,7 +39,6 @@ export function MeditationScreen() {
   const today = new Date();
   const player = useAudioPlayer(AMBIENT_TRACK, { updateInterval: 1000 });
   const [verse, setVerse] = useState<Verse | null>(null);
-  const [streak, setStreak] = useState<StreakState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [durationSeconds, setDurationSeconds] = useState(60);
   const [remainingSeconds, setRemainingSeconds] = useState(60);
@@ -50,10 +49,7 @@ export function MeditationScreen() {
   const loadMeditation = useCallback(async () => {
     setIsLoading(true);
     try {
-      const todayVerse = await getTodayVerse(db, formatDateKey(new Date()));
-      const nextStreak = await getStreakState(db);
-      setVerse(todayVerse);
-      setStreak(nextStreak);
+      setVerse(await getTodayVerse(db, formatDateKey(new Date())));
     } finally {
       setIsLoading(false);
     }
@@ -105,16 +101,13 @@ export function MeditationScreen() {
   }, [isRunning]);
 
   useEffect(() => {
-    if (!isRunning || remainingSeconds !== 0 || !verse) {
+    if (!isRunning || remainingSeconds !== 0) {
       return;
     }
 
     setIsRunning(false);
-    void completeMeditationSession(db, formatLocalDate(new Date()), verse.id, durationSeconds).then((result) => {
-      setStreak(result.streak);
-      setCompletionMessage(result.didIncrement ? '오늘의 묵상을 완료했습니다.' : '오늘 묵상은 이미 기록되어 있습니다.');
-    });
-  }, [db, durationSeconds, isRunning, remainingSeconds, verse]);
+    setCompletionMessage('묵상 시간이 끝났습니다.');
+  }, [isRunning, remainingSeconds]);
 
   function handleDurationChange(seconds: number) {
     if (isRunning) {
@@ -211,17 +204,6 @@ export function MeditationScreen() {
               {completionMessage ? <Text style={styles.completion}>{completionMessage}</Text> : null}
             </View>
 
-            <View style={styles.streakPanel}>
-              <View>
-                <Text style={styles.streakLabel}>현재 스트릭</Text>
-                <Text style={styles.streakValue}>{streak?.current_count ?? 0}일</Text>
-              </View>
-              <View style={styles.streakDivider} />
-              <View>
-                <Text style={styles.streakLabel}>최장 기록</Text>
-                <Text style={styles.streakValue}>{streak?.longest_count ?? 0}일</Text>
-              </View>
-            </View>
           </>
         ) : (
           <View style={styles.timerPanel}>
@@ -337,34 +319,6 @@ const styles = StyleSheet.create({
   safe: {
     backgroundColor: colors.background,
     flex: 1,
-  },
-  streakDivider: {
-    backgroundColor: colors.border,
-    height: 44,
-    width: 1,
-  },
-  streakLabel: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  streakPanel: {
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    padding: 18,
-  },
-  streakValue: {
-    color: colors.gold,
-    fontSize: 24,
-    fontWeight: '900',
-    marginTop: 4,
-    textAlign: 'center',
   },
   subtitle: {
     color: colors.muted,

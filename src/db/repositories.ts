@@ -1,7 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { AppSettings, MeditationCompletion, StreakState, Verse } from '../types';
-import { addDaysToDateString } from '../utils/date';
+import type { AppSettings, Verse } from '../types';
 
 const DEFAULT_SETTINGS: AppSettings = {
   notificationHour: 8,
@@ -126,79 +125,6 @@ export async function saveNotificationSettings(
   } else {
     await db.runAsync('DELETE FROM app_settings WHERE key = ?', 'notification_identifier');
   }
-}
-
-export async function getStreakState(db: SQLiteDatabase): Promise<StreakState> {
-  const row = await db.getFirstAsync<StreakState>(
-    'SELECT id, current_count, longest_count, last_completed_date FROM streak_state WHERE id = 1 LIMIT 1',
-  );
-
-  if (row) {
-    return row;
-  }
-
-  await db.runAsync(
-    'INSERT INTO streak_state (id, current_count, longest_count, last_completed_date) VALUES (1, 0, 0, NULL)',
-  );
-
-  return {
-    current_count: 0,
-    id: 1,
-    last_completed_date: null,
-    longest_count: 0,
-  };
-}
-
-export async function completeMeditationSession(
-  db: SQLiteDatabase,
-  completedDate: string,
-  verseId: string,
-  durationSeconds: number,
-): Promise<MeditationCompletion> {
-  let streak = await getStreakState(db);
-  let didIncrement = false;
-
-  await db.withTransactionAsync(async () => {
-    const existing = await db.getFirstAsync<{ id: number }>(
-      'SELECT id FROM meditation_logs WHERE completed_date = ? LIMIT 1',
-      completedDate,
-    );
-
-    if (existing) {
-      return;
-    }
-
-    await db.runAsync(
-      'INSERT INTO meditation_logs (verse_id, completed_date, completed_at, duration_seconds) VALUES (?, ?, ?, ?)',
-      verseId,
-      completedDate,
-      new Date().toISOString(),
-      durationSeconds,
-    );
-
-    const nextCount =
-      streak.last_completed_date && addDaysToDateString(streak.last_completed_date, 1) === completedDate
-        ? streak.current_count + 1
-        : 1;
-    const nextLongest = Math.max(streak.longest_count, nextCount);
-
-    await db.runAsync(
-      'UPDATE streak_state SET current_count = ?, longest_count = ?, last_completed_date = ? WHERE id = 1',
-      nextCount,
-      nextLongest,
-      completedDate,
-    );
-
-    streak = {
-      current_count: nextCount,
-      id: 1,
-      last_completed_date: completedDate,
-      longest_count: nextLongest,
-    };
-    didIncrement = true;
-  });
-
-  return { didIncrement, streak };
 }
 
 function parseBoundedNumber(value: string | undefined, min: number, max: number, fallback: number) {

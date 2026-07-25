@@ -108,11 +108,6 @@ export function HomeScreen() {
                 <Text style={styles.actionText}>{isSharing ? '공유 준비 중' : '카드 공유'}</Text>
               </Pressable>
             </View>
-
-            <View style={styles.panel}>
-              <Text style={styles.panelTitle}>오늘 붙잡을 한 문장</Text>
-              <Text style={styles.reflectionText}>{verse.text}</Text>
-            </View>
           </>
         ) : (
           <View style={styles.panel}>
@@ -176,11 +171,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 18,
     fontWeight: '900',
-  },
-  reflectionText: {
-    color: colors.text,
-    fontSize: 16,
-    lineHeight: 26,
   },
   safe: {
     backgroundColor: colors.background,

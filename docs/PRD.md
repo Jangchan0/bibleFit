@@ -5,9 +5,9 @@ BibleFit is a free local-first Expo mobile app for building a daily Bible habit 
 
 ## MVP Scope
 - Today tab: date, daily Korean verse card, save/share actions, and a short reflection block.
-- Meditation tab: today's verse, 1/3/5 minute timer, optional local background music, completion log, and streak status.
+- Meditation tab: today's verse, 1/3/5 minute timer, and optional local background music.
 - Saved tab: saved verse list and removal.
-- Settings tab: daily local notification time, notification enable/disable, streak summary, app information.
+- Settings tab: daily local notification time, notification enable/disable, privacy, Bible source, and app information.
 - Android/iOS app implementation with Expo, React Native, and TypeScript.
 - No Gemini or external generative API is used in the MVP.
 
@@ -21,8 +21,6 @@ BibleFit is a free local-first Expo mobile app for building a daily Bible habit 
 - `daily_verses(id, date_key, reference, text, translation, theme)`
 - `saved_verses(verse_id, saved_at)`
 - `app_settings(key, value, updated_at)`
-- `meditation_logs(id, verse_id, completed_date, completed_at, duration_seconds)`
-- `streak_state(id, current_count, longest_count, last_completed_date)`
 
 ## Post-MVP
 - Add full Bible tables and FTS search.

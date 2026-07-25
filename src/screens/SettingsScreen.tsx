@@ -4,17 +4,16 @@ import { useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { getAppSettings, getStreakState, saveNotificationSettings } from '../db/repositories';
+import { getAppSettings, saveNotificationSettings } from '../db/repositories';
 import { areNotificationsUnavailableInExpoGo, cancelReminder, scheduleDailyReminder } from '../services/notifications';
 import { colors } from '../theme/colors';
-import type { AppSettings, StreakState } from '../types';
+import type { AppSettings } from '../types';
 
 const PRIVACY_POLICY_URL = 'https://github.com/Jangchan0/bibleFit/blob/main/docs/privacy-policy.md';
 
 export function SettingsScreen() {
   const db = useSQLiteContext();
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [streak, setStreak] = useState<StreakState | null>(null);
   const [hourText, setHourText] = useState('08');
   const [minuteText, setMinuteText] = useState('00');
   const [isSaving, setIsSaving] = useState(false);
@@ -22,9 +21,7 @@ export function SettingsScreen() {
 
   const loadSettings = useCallback(async () => {
     const nextSettings = await getAppSettings(db);
-    const nextStreak = await getStreakState(db);
     setSettings(nextSettings);
-    setStreak(nextStreak);
     setHourText(String(nextSettings.notificationHour).padStart(2, '0'));
     setMinuteText(String(nextSettings.notificationMinute).padStart(2, '0'));
   }, [db]);
@@ -95,7 +92,7 @@ export function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>설정</Text>
-          <Text style={styles.subtitle}>알림과 묵상 기록을 관리합니다.</Text>
+          <Text style={styles.subtitle}>알림과 앱 정보를 관리합니다.</Text>
         </View>
 
         <View style={styles.panel}>
@@ -136,32 +133,15 @@ export function SettingsScreen() {
         </View>
 
         <View style={styles.panel}>
-          <Text style={styles.panelTitle}>스트릭</Text>
-          <View style={styles.statRow}>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{streak?.current_count ?? 0}</Text>
-              <Text style={styles.statLabel}>현재</Text>
-            </View>
-            <View style={styles.stat}>
-              <Text style={styles.statValue}>{streak?.longest_count ?? 0}</Text>
-              <Text style={styles.statLabel}>최장</Text>
-            </View>
-          </View>
-          <Text style={styles.helper}>
-            마지막 완료일: {streak?.last_completed_date ?? '기록 없음'}
-          </Text>
-        </View>
-
-        <View style={styles.panel}>
           <Text style={styles.panelTitle}>앱 정보</Text>
           <Text style={styles.infoText}>BibleFit MVP는 Expo SDK 57, React Native, TypeScript, expo-sqlite로 구성된 local-first 앱입니다.</Text>
-          <Text style={styles.infoText}>말씀과 묵상 기록은 기기에 저장되며 외부 생성형 API를 호출하지 않습니다.</Text>
+          <Text style={styles.infoText}>말씀 저장과 알림 설정은 기기에 저장되며 외부 생성형 API를 호출하지 않습니다.</Text>
         </View>
 
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>개인정보 처리</Text>
           <Text style={styles.infoText}>회원가입, 서버 전송, 광고 SDK, 분석 SDK를 사용하지 않습니다.</Text>
-          <Text style={styles.infoText}>저장한 말씀, 묵상 완료 기록, 알림 설정은 이 기기의 로컬 DB에만 저장됩니다.</Text>
+          <Text style={styles.infoText}>저장한 말씀과 알림 설정은 이 기기의 로컬 DB에만 저장됩니다.</Text>
           <Pressable onPress={handleOpenPrivacyPolicy} style={styles.linkButton}>
             <Text style={styles.linkText}>개인정보 처리방침 보기</Text>
           </Pressable>
@@ -259,26 +239,6 @@ const styles = StyleSheet.create({
   secondaryText: {
     color: colors.primaryDark,
     fontSize: 15,
-    fontWeight: '900',
-  },
-  stat: {
-    backgroundColor: colors.cardAlt,
-    borderRadius: 8,
-    flex: 1,
-    padding: 16,
-  },
-  statLabel: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  statValue: {
-    color: colors.primaryDark,
-    fontSize: 30,
     fontWeight: '900',
   },
   subtitle: {

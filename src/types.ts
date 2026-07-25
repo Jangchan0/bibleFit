@@ -23,15 +23,3 @@ export type AppSettings = {
   notificationIdentifier: string | null;
   notificationsEnabled: boolean;
 };
-
-export type StreakState = {
-  id: number;
-  current_count: number;
-  longest_count: number;
-  last_completed_date: string | null;
-};
-
-export type MeditationCompletion = {
-  didIncrement: boolean;
-  streak: StreakState;
-};

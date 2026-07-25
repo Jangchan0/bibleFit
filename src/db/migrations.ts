@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { DAILY_VERSES } from '../data/seedVerses';
 
-const DATABASE_VERSION = 4;
+const DATABASE_VERSION = 5;
 
 export async function configureDbConnection(db: SQLiteDatabase) {
   await db.execAsync(`
@@ -47,25 +47,8 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
         updated_at TEXT NOT NULL
       );
 
-      CREATE TABLE IF NOT EXISTS meditation_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        verse_id TEXT NOT NULL,
-        completed_date TEXT NOT NULL UNIQUE,
-        completed_at TEXT NOT NULL,
-        duration_seconds INTEGER NOT NULL,
-        FOREIGN KEY (verse_id) REFERENCES daily_verses(id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS streak_state (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        current_count INTEGER NOT NULL,
-        longest_count INTEGER NOT NULL,
-        last_completed_date TEXT
-      );
-
       CREATE INDEX IF NOT EXISTS idx_daily_verses_date_key ON daily_verses(date_key);
       CREATE INDEX IF NOT EXISTS idx_saved_verses_saved_at ON saved_verses(saved_at);
-      CREATE INDEX IF NOT EXISTS idx_meditation_logs_completed_date ON meditation_logs(completed_date);
     `);
 
     await seedDefaults(db);
@@ -77,6 +60,11 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
 
   if (currentVersion < 3) {
     await db.runAsync('DROP TABLE IF EXISTS ai_interpretations');
+  }
+
+  if (currentVersion < 5) {
+    await db.runAsync('DROP TABLE IF EXISTS meditation_logs');
+    await db.runAsync('DROP TABLE IF EXISTS streak_state');
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
@@ -124,8 +112,5 @@ async function seedDefaults(db: SQLiteDatabase) {
     'notifications_enabled',
     'false',
     now,
-  );
-  await db.runAsync(
-    'INSERT OR IGNORE INTO streak_state (id, current_count, longest_count, last_completed_date) VALUES (1, 0, 0, NULL)',
   );
 }
