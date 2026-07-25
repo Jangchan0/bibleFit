@@ -1,6 +1,6 @@
 import type { SeedVerse } from '../types';
 
-// MVP seed uses Korean Bible 1910 (KOROLD), which is distributed as public domain by eBible.org.
+// MVP seed uses Korean Bible 1910 (source id: KOROLD), which is distributed as public domain by eBible.org.
 const BASE_VERSES = [
   {
     reference: '요한복음 3:16',
@@ -179,6 +179,6 @@ export const DAILY_VERSES: SeedVerse[] = buildDateKeys().map((dateKey, index) =>
     reference: base.reference,
     text: base.text,
     theme: base.theme,
-    translation: 'KOROLD',
+    translation: '한글성경',
   };
 });

@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { DAILY_VERSES } from '../data/seedVerses';
 
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
 
 export async function configureDbConnection(db: SQLiteDatabase) {
   await db.execAsync(`
@@ -71,7 +71,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
     await seedDefaults(db);
   }
 
-  if (currentVersion < 2) {
+  if (currentVersion < 4) {
     await syncDailyVerses(db);
   }
 
