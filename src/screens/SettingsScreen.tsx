@@ -5,7 +5,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getAppSettings, getStreakState, saveNotificationSettings } from '../db/repositories';
-import { cancelReminder, scheduleDailyReminder } from '../services/notifications';
+import { areNotificationsUnavailableInExpoGo, cancelReminder, scheduleDailyReminder } from '../services/notifications';
 import { colors } from '../theme/colors';
 import type { AppSettings, StreakState } from '../types';
 
@@ -16,6 +16,7 @@ export function SettingsScreen() {
   const [hourText, setHourText] = useState('08');
   const [minuteText, setMinuteText] = useState('00');
   const [isSaving, setIsSaving] = useState(false);
+  const notificationsUnavailableInExpoGo = areNotificationsUnavailableInExpoGo();
 
   const loadSettings = useCallback(async () => {
     const nextSettings = await getAppSettings(db);
@@ -51,7 +52,14 @@ export function SettingsScreen() {
         notificationsEnabled: result.granted,
       });
       await loadSettings();
-      Alert.alert(result.granted ? '알림 설정 완료' : '알림 권한 필요', result.granted ? '매일 알림을 예약했습니다.' : '기기 설정에서 알림 권한을 허용해주세요.');
+      Alert.alert(
+        result.granted ? '알림 설정 완료' : '알림 사용 불가',
+        result.reason === 'expo-go-android'
+          ? 'Expo Go Android에서는 알림 모듈을 사용할 수 없습니다. npm run android:dev로 개발 빌드를 실행해주세요.'
+          : result.granted
+            ? '매일 알림을 예약했습니다.'
+            : '기기 설정에서 알림 권한을 허용해주세요.',
+      );
     } finally {
       setIsSaving(false);
     }
@@ -102,8 +110,13 @@ export function SettingsScreen() {
             />
           </View>
           <Text style={styles.helper}>
-            현재 상태: {settings?.notificationsEnabled ? '예약됨' : '꺼짐'}
+            현재 상태: {notificationsUnavailableInExpoGo ? 'Expo Go Android 미지원' : settings?.notificationsEnabled ? '예약됨' : '꺼짐'}
           </Text>
+          {notificationsUnavailableInExpoGo ? (
+            <Text style={styles.warningText}>
+              Android Expo Go에서는 알림 모듈이 빠져 있습니다. 앱 기능 확인은 가능하지만 알림 테스트는 개발 빌드에서 진행하세요.
+            </Text>
+          ) : null}
           <View style={styles.actionRow}>
             <Pressable disabled={isSaving} onPress={handleSaveNotification} style={styles.primaryButton}>
               <Text style={styles.primaryText}>{isSaving ? '저장 중' : '알림 저장'}</Text>
@@ -258,5 +271,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 34,
     fontWeight: '900',
+  },
+  warningText: {
+    backgroundColor: '#FFF2DA',
+    borderRadius: 8,
+    color: colors.warning,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 22,
+    padding: 12,
   },
 });

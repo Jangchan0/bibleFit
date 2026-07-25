@@ -50,7 +50,7 @@ function Tabs() {
 
 export default function App() {
   useEffect(() => {
-    configureNotificationHandler();
+    void configureNotificationHandler();
   }, []);
 
   return (

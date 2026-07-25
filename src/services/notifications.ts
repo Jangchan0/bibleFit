@@ -1,7 +1,19 @@
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-export function configureNotificationHandler() {
+type NotificationsModule = typeof import('expo-notifications');
+
+export function areNotificationsUnavailableInExpoGo() {
+  return Platform.OS === 'android' && Constants.appOwnership === 'expo';
+}
+
+export async function configureNotificationHandler() {
+  if (areNotificationsUnavailableInExpoGo()) {
+    return;
+  }
+
+  const Notifications = await loadNotificationsModule();
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldPlaySound: false,
@@ -13,22 +25,33 @@ export function configureNotificationHandler() {
 }
 
 export async function cancelReminder(identifier: string | null) {
-  if (!identifier) {
+  if (!identifier || areNotificationsUnavailableInExpoGo()) {
     return;
   }
 
+  const Notifications = await loadNotificationsModule();
   await Notifications.cancelScheduledNotificationAsync(identifier);
 }
 
 export async function scheduleDailyReminder(existingIdentifier: string | null, hour: number, minute: number) {
-  await ensureNotificationChannel();
+  if (areNotificationsUnavailableInExpoGo()) {
+    return {
+      granted: false,
+      identifier: null,
+      reason: 'expo-go-android' as const,
+    };
+  }
 
-  const permission = await ensureNotificationPermission();
+  const Notifications = await loadNotificationsModule();
+  await ensureNotificationChannel(Notifications);
+
+  const permission = await ensureNotificationPermission(Notifications);
 
   if (!permission) {
     return {
       granted: false,
       identifier: null,
+      reason: 'permission-denied' as const,
     };
   }
 
@@ -50,10 +73,15 @@ export async function scheduleDailyReminder(existingIdentifier: string | null, h
   return {
     granted: true,
     identifier,
+    reason: 'scheduled' as const,
   };
 }
 
-async function ensureNotificationPermission() {
+async function loadNotificationsModule(): Promise<NotificationsModule> {
+  return import('expo-notifications');
+}
+
+async function ensureNotificationPermission(Notifications: NotificationsModule) {
   const current = await Notifications.getPermissionsAsync();
 
   if (current.granted) {
@@ -64,7 +92,7 @@ async function ensureNotificationPermission() {
   return requested.granted;
 }
 
-async function ensureNotificationChannel() {
+async function ensureNotificationChannel(Notifications: NotificationsModule) {
   if (Platform.OS !== 'android') {
     return;
   }
