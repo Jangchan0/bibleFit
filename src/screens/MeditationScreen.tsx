@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { setAudioModeAsync, useAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -17,6 +17,22 @@ const DURATION_OPTIONS = [
   { label: '3분', seconds: 180 },
   { label: '5분', seconds: 300 },
 ] as const;
+
+function safelyPausePlayer(player: AudioPlayer) {
+  try {
+    player.pause();
+  } catch (error) {
+    console.warn('[BibleFit] Meditation audio pause skipped', error);
+  }
+}
+
+function safelyPlayPlayer(player: AudioPlayer) {
+  try {
+    player.play();
+  } catch (error) {
+    console.warn('[BibleFit] Meditation audio play skipped', error);
+  }
+}
 
 export function MeditationScreen() {
   const db = useSQLiteContext();
@@ -48,7 +64,7 @@ export function MeditationScreen() {
       void loadMeditation();
 
       return () => {
-        player.pause();
+        safelyPausePlayer(player);
         setIsRunning(false);
       };
     }, [loadMeditation, player]),
@@ -65,19 +81,15 @@ export function MeditationScreen() {
     }).catch((error: unknown) => {
       console.warn('[BibleFit] Meditation audio mode skipped', error);
     });
-
-    return () => {
-      player.pause();
-    };
   }, [player]);
 
   useEffect(() => {
     if (isRunning && isMusicEnabled) {
-      player.play();
+      safelyPlayPlayer(player);
       return;
     }
 
-    player.pause();
+    safelyPausePlayer(player);
   }, [isMusicEnabled, isRunning, player]);
 
   useEffect(() => {
