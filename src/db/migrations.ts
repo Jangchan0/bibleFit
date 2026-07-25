@@ -5,10 +5,13 @@ import { DAILY_VERSES } from '../data/seedVerses';
 const DATABASE_VERSION = 1;
 
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
+  console.info('[BibleFit] SQLite migration started');
+
   const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const currentVersion = versionRow?.user_version ?? 0;
 
   if (currentVersion >= DATABASE_VERSION) {
+    console.info('[BibleFit] SQLite migration skipped');
     return;
   }
 
@@ -73,6 +76,7 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
+  console.info('[BibleFit] SQLite migration completed');
 }
 
 async function seedDailyVerses(db: SQLiteDatabase) {
@@ -82,26 +86,17 @@ async function seedDailyVerses(db: SQLiteDatabase) {
     return;
   }
 
-  await db.withTransactionAsync(async () => {
-    const statement = await db.prepareAsync(
+  for (const verse of DAILY_VERSES) {
+    await db.runAsync(
       'INSERT OR IGNORE INTO daily_verses (id, date_key, reference, text, translation, theme) VALUES (?, ?, ?, ?, ?, ?)',
+      verse.id,
+      verse.dateKey,
+      verse.reference,
+      verse.text,
+      verse.translation,
+      verse.theme,
     );
-
-    try {
-      for (const verse of DAILY_VERSES) {
-        await statement.executeAsync([
-          verse.id,
-          verse.dateKey,
-          verse.reference,
-          verse.text,
-          verse.translation,
-          verse.theme,
-        ]);
-      }
-    } finally {
-      await statement.finalizeAsync();
-    }
-  });
+  }
 }
 
 async function seedDefaults(db: SQLiteDatabase) {
