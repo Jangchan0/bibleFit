@@ -4,8 +4,17 @@ import { DAILY_VERSES } from '../data/seedVerses';
 
 const DATABASE_VERSION = 1;
 
+export async function configureDbConnection(db: SQLiteDatabase) {
+  await db.execAsync(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA foreign_keys = ON;
+  `);
+}
+
 export async function migrateDbIfNeeded(db: SQLiteDatabase) {
   console.info('[BibleFit] SQLite migration started');
+
+  await configureDbConnection(db);
 
   const versionRow = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
   const currentVersion = versionRow?.user_version ?? 0;
@@ -17,9 +26,6 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
 
   if (currentVersion === 0) {
     await db.execAsync(`
-      PRAGMA journal_mode = WAL;
-      PRAGMA foreign_keys = ON;
-
       CREATE TABLE IF NOT EXISTS daily_verses (
         id TEXT PRIMARY KEY NOT NULL,
         date_key TEXT NOT NULL UNIQUE,
