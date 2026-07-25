@@ -16,6 +16,10 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.jangchan0.biblefit",
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -26,7 +30,14 @@
       "expo-sqlite",
       "expo-sharing",
       "expo-notifications",
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": false,
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ]
   }
 }

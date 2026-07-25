@@ -28,7 +28,9 @@
     "android": "expo start --android",
     "android:emulator": "expo start --android --go --host lan --clear",
     "android:dev": "expo run:android",
+    "build:android": "eas build --platform android --profile production",
     "ios": "expo start --ios",
+    "submit:android": "eas submit --platform android --profile production",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"
   },

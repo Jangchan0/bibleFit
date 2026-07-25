@@ -1,13 +1,15 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getAppSettings, getStreakState, saveNotificationSettings } from '../db/repositories';
 import { areNotificationsUnavailableInExpoGo, cancelReminder, scheduleDailyReminder } from '../services/notifications';
 import { colors } from '../theme/colors';
 import type { AppSettings, StreakState } from '../types';
+
+const PRIVACY_POLICY_URL = 'https://github.com/Jangchan0/bibleFit/blob/main/docs/privacy-policy.md';
 
 export function SettingsScreen() {
   const db = useSQLiteContext();
@@ -82,6 +84,12 @@ export function SettingsScreen() {
     }
   }
 
+  function handleOpenPrivacyPolicy() {
+    void Linking.openURL(PRIVACY_POLICY_URL).catch(() => {
+      Alert.alert('열 수 없음', '개인정보 처리방침 페이지를 여는 중 문제가 생겼습니다.');
+    });
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -149,6 +157,21 @@ export function SettingsScreen() {
           <Text style={styles.infoText}>BibleFit MVP는 Expo SDK 57, React Native, TypeScript, expo-sqlite로 구성된 local-first 앱입니다.</Text>
           <Text style={styles.infoText}>말씀과 묵상 기록은 기기에 저장되며 외부 생성형 API를 호출하지 않습니다.</Text>
         </View>
+
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>개인정보 처리</Text>
+          <Text style={styles.infoText}>회원가입, 서버 전송, 광고 SDK, 분석 SDK를 사용하지 않습니다.</Text>
+          <Text style={styles.infoText}>저장한 말씀, 묵상 완료 기록, 알림 설정은 이 기기의 로컬 DB에만 저장됩니다.</Text>
+          <Pressable onPress={handleOpenPrivacyPolicy} style={styles.linkButton}>
+            <Text style={styles.linkText}>개인정보 처리방침 보기</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>성경 본문 출처</Text>
+          <Text style={styles.infoText}>본문은 eBible.org에서 공개 도메인으로 배포하는 Korean Bible 1910 자료를 기반으로 합니다.</Text>
+          <Text style={styles.infoText}>앱 안에서는 사용자에게 익숙한 표시를 위해 `한글성경`으로 표기합니다.</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -181,6 +204,19 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     lineHeight: 22,
+  },
+  linkButton: {
+    alignItems: 'center',
+    backgroundColor: colors.soft,
+    borderRadius: 8,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 14,
+  },
+  linkText: {
+    color: colors.primaryDark,
+    fontSize: 14,
+    fontWeight: '900',
   },
   panel: {
     backgroundColor: colors.card,
