@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { DAILY_VERSES } from '../data/seedVerses';
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 export async function configureDbConnection(db: SQLiteDatabase) {
   await db.execAsync(`
@@ -41,15 +41,6 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
         FOREIGN KEY (verse_id) REFERENCES daily_verses(id) ON DELETE CASCADE
       );
 
-      CREATE TABLE IF NOT EXISTS ai_interpretations (
-        verse_id TEXT PRIMARY KEY NOT NULL,
-        model TEXT NOT NULL,
-        prompt_version TEXT NOT NULL,
-        interpretation TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        FOREIGN KEY (verse_id) REFERENCES daily_verses(id) ON DELETE CASCADE
-      );
-
       CREATE TABLE IF NOT EXISTS app_settings (
         key TEXT PRIMARY KEY NOT NULL,
         value TEXT NOT NULL,
@@ -82,7 +73,10 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
 
   if (currentVersion < 2) {
     await syncDailyVerses(db);
-    await db.runAsync('DELETE FROM ai_interpretations');
+  }
+
+  if (currentVersion < 3) {
+    await db.runAsync('DROP TABLE IF EXISTS ai_interpretations');
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

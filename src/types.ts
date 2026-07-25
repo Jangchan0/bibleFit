@@ -17,14 +17,6 @@ export type SeedVerse = {
   theme: string;
 };
 
-export type AiInterpretation = {
-  verse_id: string;
-  model: string;
-  prompt_version: string;
-  interpretation: string;
-  created_at: string;
-};
-
 export type AppSettings = {
   notificationHour: number;
   notificationMinute: number;

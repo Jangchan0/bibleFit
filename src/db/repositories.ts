@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { AiInterpretation, AppSettings, MeditationCompletion, StreakState, Verse } from '../types';
+import type { AppSettings, MeditationCompletion, StreakState, Verse } from '../types';
 import { addDaysToDateString } from '../utils/date';
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -76,33 +76,6 @@ export async function toggleSavedVerse(db: SQLiteDatabase, verseId: string) {
 
   await db.runAsync('INSERT INTO saved_verses (verse_id, saved_at) VALUES (?, ?)', verseId, new Date().toISOString());
   return true;
-}
-
-export async function getCachedAiInterpretation(db: SQLiteDatabase, verseId: string) {
-  return db.getFirstAsync<AiInterpretation>(
-    'SELECT verse_id, model, prompt_version, interpretation, created_at FROM ai_interpretations WHERE verse_id = ? LIMIT 1',
-    verseId,
-  );
-}
-
-export async function saveAiInterpretation(
-  db: SQLiteDatabase,
-  input: Omit<AiInterpretation, 'created_at'> & { created_at?: string },
-) {
-  await db.runAsync(
-    `INSERT INTO ai_interpretations (verse_id, model, prompt_version, interpretation, created_at)
-     VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT(verse_id) DO UPDATE SET
-       model = excluded.model,
-       prompt_version = excluded.prompt_version,
-       interpretation = excluded.interpretation,
-       created_at = excluded.created_at`,
-    input.verse_id,
-    input.model,
-    input.prompt_version,
-    input.interpretation,
-    input.created_at ?? new Date().toISOString(),
-  );
 }
 
 export async function getSetting(db: SQLiteDatabase, key: string) {

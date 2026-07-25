@@ -147,7 +147,7 @@ export function SettingsScreen() {
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>앱 정보</Text>
           <Text style={styles.infoText}>BibleFit MVP는 Expo SDK 57, React Native, TypeScript, expo-sqlite로 구성된 local-first 앱입니다.</Text>
-          <Text style={styles.infoText}>AI 해석을 사용하려면 `EXPO_PUBLIC_GEMINI_API_KEY` 환경 변수를 설정하세요.</Text>
+          <Text style={styles.infoText}>말씀과 묵상 기록은 기기에 저장되며 외부 생성형 API를 호출하지 않습니다.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -1,50 +1,29 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useSQLiteContext } from 'expo-sqlite';
 import * as Sharing from 'expo-sharing';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { captureRef } from 'react-native-view-shot';
 
-import { MeditationTimer } from '../components/MeditationTimer';
 import { VerseCard } from '../components/VerseCard';
-import {
-  completeMeditationSession,
-  getCachedAiInterpretation,
-  getStreakState,
-  getTodayVerse,
-  saveAiInterpretation,
-  toggleSavedVerse,
-} from '../db/repositories';
-import { AI_PROMPT_VERSION, fetchAiInterpretation } from '../services/ai';
+import { getTodayVerse, toggleSavedVerse } from '../db/repositories';
 import { colors } from '../theme/colors';
-import type { AiInterpretation, StreakState, Verse } from '../types';
-import { formatDateKey, formatKoreanDate, formatLocalDate } from '../utils/date';
-
-const TOTAL_SECONDS = 60;
+import type { Verse } from '../types';
+import { formatDateKey, formatKoreanDate } from '../utils/date';
 
 export function HomeScreen() {
   const db = useSQLiteContext();
   const cardRef = useRef<View>(null);
   const today = new Date();
   const [verse, setVerse] = useState<Verse | null>(null);
-  const [aiInterpretation, setAiInterpretation] = useState<AiInterpretation | null>(null);
-  const [streak, setStreak] = useState<StreakState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
-  const [remainingSeconds, setRemainingSeconds] = useState(TOTAL_SECONDS);
-  const [isRunning, setIsRunning] = useState(false);
-  const [completionMessage, setCompletionMessage] = useState<string | null>(null);
 
   const loadHome = useCallback(async () => {
     setIsLoading(true);
     try {
-      const todayVerse = await getTodayVerse(db, formatDateKey(new Date()));
-      const nextStreak = await getStreakState(db);
-      setVerse(todayVerse);
-      setStreak(nextStreak);
-      setAiInterpretation(todayVerse ? await getCachedAiInterpretation(db, todayVerse.id) : null);
+      setVerse(await getTodayVerse(db, formatDateKey(new Date())));
     } finally {
       setIsLoading(false);
     }
@@ -56,30 +35,6 @@ export function HomeScreen() {
     }, [loadHome]),
   );
 
-  useEffect(() => {
-    if (!isRunning) {
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      setRemainingSeconds((current) => Math.max(0, current - 1));
-    }, 1000);
-
-    return () => clearInterval(intervalId);
-  }, [isRunning]);
-
-  useEffect(() => {
-    if (!isRunning || remainingSeconds !== 0 || !verse) {
-      return;
-    }
-
-    setIsRunning(false);
-    void completeMeditationSession(db, formatLocalDate(new Date()), verse.id, TOTAL_SECONDS).then((result) => {
-      setStreak(result.streak);
-      setCompletionMessage(result.didIncrement ? '오늘의 묵상을 완료했습니다.' : '오늘 묵상은 이미 기록되어 있습니다.');
-    });
-  }, [db, isRunning, remainingSeconds, verse]);
-
   async function handleToggleSaved() {
     if (!verse) {
       return;
@@ -87,36 +42,6 @@ export function HomeScreen() {
 
     const isSaved = await toggleSavedVerse(db, verse.id);
     setVerse({ ...verse, is_saved: isSaved ? 1 : 0 });
-  }
-
-  async function handleAiInterpretation() {
-    if (!verse) {
-      return;
-    }
-
-    const cached = await getCachedAiInterpretation(db, verse.id);
-
-    if (cached) {
-      setAiInterpretation(cached);
-      return;
-    }
-
-    setIsAiLoading(true);
-    try {
-      const result = await fetchAiInterpretation(verse);
-      const input = {
-        interpretation: result.interpretation,
-        model: result.model,
-        prompt_version: AI_PROMPT_VERSION,
-        verse_id: verse.id,
-      };
-      await saveAiInterpretation(db, input);
-      setAiInterpretation({ ...input, created_at: new Date().toISOString() });
-    } catch (error) {
-      Alert.alert('AI 해석을 불러오지 못했습니다', error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.');
-    } finally {
-      setIsAiLoading(false);
-    }
   }
 
   async function handleShareCard() {
@@ -147,18 +72,6 @@ export function HomeScreen() {
     } finally {
       setIsSharing(false);
     }
-  }
-
-  function handleStartTimer() {
-    setCompletionMessage(null);
-    setRemainingSeconds(TOTAL_SECONDS);
-    setIsRunning(true);
-  }
-
-  function handleResetTimer() {
-    setIsRunning(false);
-    setRemainingSeconds(TOTAL_SECONDS);
-    setCompletionMessage(null);
   }
 
   if (isLoading) {
@@ -197,31 +110,8 @@ export function HomeScreen() {
             </View>
 
             <View style={styles.panel}>
-              <View style={styles.panelHeader}>
-                <Text style={styles.panelTitle}>AI 일상 해석</Text>
-                <Pressable disabled={isAiLoading} onPress={handleAiInterpretation} style={styles.smallButton}>
-                  <Text style={styles.smallButtonText}>{isAiLoading ? '불러오는 중' : '해석 보기'}</Text>
-                </Pressable>
-              </View>
-              <Text style={styles.aiText}>
-                {aiInterpretation?.interpretation ??
-                  'Gemini API 키를 설정하면 오늘의 말씀을 일상 언어로 2~3문장 해석합니다.'}
-              </Text>
-            </View>
-
-            <View style={styles.panel}>
-              <View style={styles.panelHeader}>
-                <Text style={styles.panelTitle}>1분 묵상</Text>
-                <Text style={styles.streakText}>현재 {streak?.current_count ?? 0}일</Text>
-              </View>
-              <MeditationTimer
-                isRunning={isRunning}
-                onReset={handleResetTimer}
-                onStart={handleStartTimer}
-                remainingSeconds={remainingSeconds}
-                totalSeconds={TOTAL_SECONDS}
-              />
-              {completionMessage ? <Text style={styles.completion}>{completionMessage}</Text> : null}
+              <Text style={styles.panelTitle}>오늘 붙잡을 한 문장</Text>
+              <Text style={styles.reflectionText}>{verse.text}</Text>
             </View>
           </>
         ) : (
@@ -253,22 +143,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
   },
-  aiText: {
-    color: colors.text,
-    fontSize: 15,
-    lineHeight: 24,
-  },
   center: {
     alignItems: 'center',
     backgroundColor: colors.background,
     flex: 1,
     justifyContent: 'center',
-  },
-  completion: {
-    color: colors.primaryDark,
-    fontSize: 14,
-    fontWeight: '800',
-    textAlign: 'center',
   },
   content: {
     gap: 18,
@@ -293,16 +172,15 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 18,
   },
-  panelHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
   panelTitle: {
     color: colors.text,
     fontSize: 18,
     fontWeight: '900',
+  },
+  reflectionText: {
+    color: colors.text,
+    fontSize: 16,
+    lineHeight: 26,
   },
   safe: {
     backgroundColor: colors.background,
@@ -313,22 +191,6 @@ const styles = StyleSheet.create({
   },
   savedText: {
     color: colors.textLight,
-  },
-  smallButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  smallButtonText: {
-    color: colors.textLight,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  streakText: {
-    color: colors.gold,
-    fontSize: 14,
-    fontWeight: '900',
   },
   subtitle: {
     color: colors.muted,

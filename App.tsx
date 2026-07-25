@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { configureDbConnection, migrateDbIfNeeded } from './src/db/migrations';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { MeditationScreen } from './src/screens/MeditationScreen';
 import { SavedScreen } from './src/screens/SavedScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { configureNotificationHandler } from './src/services/notifications';
@@ -15,6 +16,7 @@ import { colors } from './src/theme/colors';
 
 export type RootTabParamList = {
   Home: undefined;
+  Meditation: undefined;
   Saved: undefined;
   Settings: undefined;
 };
@@ -66,6 +68,7 @@ function Tabs() {
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: '오늘' }} />
+      <Tab.Screen name="Meditation" component={MeditationScreen} options={{ tabBarLabel: '묵상' }} />
       <Tab.Screen name="Saved" component={SavedScreen} options={{ tabBarLabel: '보관함' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: '설정' }} />
     </Tab.Navigator>
