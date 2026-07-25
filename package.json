@@ -24,6 +24,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
+    "android:emulator": "expo start --android --localhost",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit"
