@@ -2,7 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { DAILY_VERSES } from '../data/seedVerses';
 
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 export async function configureDbConnection(db: SQLiteDatabase) {
   await db.execAsync(`
@@ -77,24 +77,29 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase) {
       CREATE INDEX IF NOT EXISTS idx_meditation_logs_completed_date ON meditation_logs(completed_date);
     `);
 
-    await seedDailyVerses(db);
     await seedDefaults(db);
+  }
+
+  if (currentVersion < 2) {
+    await syncDailyVerses(db);
+    await db.runAsync('DELETE FROM ai_interpretations');
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
   console.info('[BibleFit] SQLite migration completed');
 }
 
-async function seedDailyVerses(db: SQLiteDatabase) {
-  const countRow = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM daily_verses');
-
-  if ((countRow?.count ?? 0) > 0) {
-    return;
-  }
-
+async function syncDailyVerses(db: SQLiteDatabase) {
   for (const verse of DAILY_VERSES) {
     await db.runAsync(
-      'INSERT OR IGNORE INTO daily_verses (id, date_key, reference, text, translation, theme) VALUES (?, ?, ?, ?, ?, ?)',
+      `INSERT INTO daily_verses (id, date_key, reference, text, translation, theme)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         date_key = excluded.date_key,
+         reference = excluded.reference,
+         text = excluded.text,
+         translation = excluded.translation,
+         theme = excluded.theme`,
       verse.id,
       verse.dateKey,
       verse.reference,
